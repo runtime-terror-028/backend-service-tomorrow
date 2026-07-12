@@ -1,0 +1,12 @@
+services:
+  mysql-db:
+    image: mysql:lts
+    container_name: mysql_lts_dev
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: my_secure_root_password
+      MYSQL_DATABASE: db_dev_service_tomorrow
+    volumes:
+      - ./mySQL_Data:/var/lib/mysql

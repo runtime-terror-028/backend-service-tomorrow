@@ -1,0 +1,18 @@
+{
+  "tasks": {
+    "dev": "deno run --env-file=dev.env --watch --allow-net --allow-env main.ts",
+    "prod": "deno run --env-file=prod.env --allow-net --allow-env main.ts",
+
+    "test:dev": "deno test --env-file=dev.env --allow-net --allow-env --allow-read",
+    "test:prod": "deno test --env-file=prod.env --allow-net --allow-env --allow-read",
+
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "db:reset": "docker-compose down -v && rm -rf ./mySQL_Data",
+    "db:setup": "deno run --env-file=dev.env --allow-net --allow-env --allow-read setup_db.ts"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1",
+    "mysql2/promise": "npm:mysql2@^3.9.7/promise"
+  }
+}
