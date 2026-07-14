@@ -1,7 +1,7 @@
 import { handleTicketRoutes } from "./src/api/ticket_api.ts";
 import { handleUserRoutes } from "./src/api/user_api.ts";
-
 import { handleCmdbRoutes } from "./src/api/cmdb_api.ts";
+import { handleAlertRoutes } from "./src/api/alert_api.ts";
 
 export async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
@@ -16,6 +16,10 @@ export async function handler(req: Request): Promise<Response> {
 
   if (url.pathname.startsWith("/api/cmdb")) {
     return await handleCmdbRoutes(req, url);
+  }
+
+  if (url.pathname.startsWith("/api/alerts")) {
+    return await handleAlertRoutes(req, url);
   }
 
   if (url.pathname === "/api") {
