@@ -27,3 +27,13 @@ export async function getServers() {
     if (!response.ok) throw new Error('Failed to fetch servers');
     return await response.json();
 }
+
+export async function createServer(payload) {
+    const response = await fetch('/api/cmdb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error('Failed to create server');
+    return await response.json();
+}
