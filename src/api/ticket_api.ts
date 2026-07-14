@@ -24,6 +24,7 @@ import {
   getCommentsByTicketId,
   softDeleteComment
 } from "../db/db_ticket.ts";
+import { searchAssets } from "../db/db_cmdb.ts";
 
 export async function handleTicketRoutes(req: Request, url: URL): Promise<Response> {
   const method = req.method;
@@ -71,6 +72,37 @@ export async function handleTicketRoutes(req: Request, url: URL): Promise<Respon
       // POST /api/tickets
       if (method === "POST" && parts.length === 2) {
         const body = await req.json();
+        
+        // Priority logic
+        if (body.issue_type === 'server_down') {
+          body.priority = 'high';
+        } else if (body.issue_type === 'utilization_high') {
+          body.priority = 'medium';
+        } else {
+          body.priority = 'low';
+        }
+
+        // CMDB Server details logic
+        if (body.server_name && body.server_name.toLowerCase() !== 'others') {
+          const servers = await searchAssets(pool, { ip_address: body.server_name });
+          let server = servers[0];
+          
+          if (!server) {
+            const serversByName = await searchAssets(pool, { host_name: body.server_name });
+            server = serversByName[0];
+          }
+
+          if (server) {
+            const serverInfo = `\n\n--- Affected Server Details ---\nName: ${server.asset_name}\nHost: ${server.host_name || 'N/A'}\nIP: ${server.ip_address || 'N/A'}\nOS: ${server.os_version || 'N/A'}\nVirtual: ${server.is_virtual ? 'Yes' : 'No'}`;
+            body.long_description = (body.long_description || '') + serverInfo;
+          }
+        }
+
+        // Generate INC number if not provided by frontend (or we can override it)
+        if (!body.inc_number) {
+          body.inc_number = 'INC' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        }
+
         const id = await createTicket(pool, body);
         return createdResponse({ ticket_id: id });
       }

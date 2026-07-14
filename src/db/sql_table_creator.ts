@@ -91,11 +91,43 @@ export async function initializeDatabase(pool: Pool) {
     `);
     console.log("Checked/Created table: cmdb");
 
+    // Insert demo data
+    await insertDemoData(pool);
+
     connection.release();
     console.log("Database initialization completed successfully.");
   } catch (error) {
     console.error("Failed to initialize database:", error);
     throw error;
+  }
+}
+
+export async function insertDemoData(pool: Pool) {
+  const connection = await pool.getConnection();
+  try {
+    console.log("Inserting demo data...");
+    
+    // Insert Users
+    await connection.query(`
+      INSERT IGNORE INTO users (username, password, first_name, last_name, email, role) VALUES
+      ('admin', 'password123', 'System', 'Admin', 'admin@example.com', 'admin'),
+      ('manager', 'password123', 'IT', 'Manager', 'manager@example.com', 'engineer'),
+      ('user', 'password123', 'Demo', 'User', 'user@example.com', 'customer')
+    `);
+    
+    // Insert CMDB Assets
+    await connection.query(`
+      INSERT IGNORE INTO cmdb (asset_name, host_name, ip_address, os_version, is_virtual, spoc) VALUES
+      ('PROD-DB-01', 'db01.prod.local', '10.0.0.5', 'Ubuntu 22.04', FALSE, 'admin@example.com'),
+      ('PROD-WEB-01', 'web01.prod.local', '10.0.0.10', 'Ubuntu 22.04', TRUE, 'manager@example.com'),
+      ('PROD-WEB-02', 'web02.prod.local', '10.0.0.11', 'Ubuntu 22.04', TRUE, 'manager@example.com')
+    `);
+
+    console.log("Demo data inserted successfully.");
+  } catch (error) {
+    console.error("Failed to insert demo data:", error);
+  } finally {
+    connection.release();
   }
 }
 

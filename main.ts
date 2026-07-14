@@ -25,9 +25,38 @@ export async function handler(req: Request): Promise<Response> {
     });
   }
 
-  return new Response("<h1>Welcome to Deno!</h1>", {
-    headers: { "content-type": "text/html" },
-  });
+  // Serve static files from public
+  if (url.pathname.startsWith("/public/")) {
+    try {
+      const filePath = `.${url.pathname}`;
+      const file = await Deno.readFile(filePath);
+      
+      let contentType = "text/plain";
+      if (filePath.endsWith(".css")) contentType = "text/css";
+      else if (filePath.endsWith(".js")) contentType = "application/javascript";
+      
+      return new Response(file, { headers: { "content-type": contentType } });
+    } catch {
+      return new Response("Not found", { status: 404 });
+    }
+  }
+
+  // Serve HTML views
+  let viewPath = "";
+  if (url.pathname === "/") viewPath = "./src/views/index.html";
+  else if (url.pathname === "/incident") viewPath = "./src/views/incident.html";
+  else if (url.pathname === "/cmdb") viewPath = "./src/views/cmdb.html";
+
+  if (viewPath) {
+    try {
+      const file = await Deno.readFile(viewPath);
+      return new Response(file, { headers: { "content-type": "text/html" } });
+    } catch {
+      return new Response("View not found", { status: 404 });
+    }
+  }
+
+  return new Response("Not found", { status: 404 });
 }
 
 if (import.meta.main) {

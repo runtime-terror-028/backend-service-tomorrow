@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMDB - Service Tomorrow</title>
+    <link rel="stylesheet" href="/public/style.css">
+</head>
+<body>
+    <header>
+        <a href="/" class="brand">Service Tomorrow</a>
+        <nav>
+            <a href="/incident">Incident</a>
+            <a href="/cmdb">CMDB</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="page-header">
+            <h1>Configuration Management Database (CMDB)</h1>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Asset Tag</th>
+                        <th>Name</th>
+                        <th>Class</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="cmdb-table-body">
+                    <!-- Servers will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Server Details Modal -->
+    <div class="modal-overlay" id="server-detail-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Server Details</h2>
+                <button class="modal-close" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="server-detail-content">
+                <!-- Details injected via JS -->
+            </div>
+            <div class="modal-body" style="padding-top: 0;">
+                <div class="form-actions">
+                    <button type="button" class="btn" id="btn-close-bottom">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getServers } from '/public/api.js';
+        import { initModal } from '/public/app.js';
+
+        let detailModal;
+
+        async function loadServersUI() {
+            try {
+                const servers = await getServers();
+                const tbody = document.getElementById('cmdb-table-body');
+                tbody.innerHTML = '';
+
+                if (servers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No assets found.</td></tr>';
+                    return;
+                }
+
+                servers.forEach(server => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${server.asset_id}</td>
+                        <td>${server.asset_name}</td>
+                        <td>${server.host_name || 'N/A'}</td>
+                        <td>${server.is_operational ? 'Operational' : 'Offline'}</td>
+                    `;
+                    // Add click event for details modal
+                    tr.addEventListener('click', () => showServerDetails(server));
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error(error);
+                const tbody = document.getElementById('cmdb-table-body');
+                tbody.innerHTML = '<tr><td colspan="4">Error loading data.</td></tr>';
+            }
+        }
+
+        function showServerDetails(server) {
+            const content = document.getElementById('server-detail-content');
+            content.innerHTML = `
+                <div class="detail-row">
+                    <div class="detail-label">Asset Name:</div>
+                    <div class="detail-value">${server.asset_name}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Host Name:</div>
+                    <div class="detail-value">${server.host_name || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">IP Address:</div>
+                    <div class="detail-value">${server.ip_address || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Virtual:</div>
+                    <div class="detail-value">${server.is_virtual ? 'Yes' : 'No'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Operational:</div>
+                    <div class="detail-value">${server.is_operational ? 'Yes' : 'No'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Date Added:</div>
+                    <div class="detail-value">${new Date(server.date_added).toLocaleString()}</div>
+                </div>
+            `;
+            detailModal.openModal();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadServersUI();
+            detailModal = initModal('server-detail-modal', null, ['close-modal', 'btn-close-bottom']);
+        });
+    </script>
+</body>
+</html>

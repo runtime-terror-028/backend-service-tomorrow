@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incidents - Service Tomorrow</title>
+    <link rel="stylesheet" href="/public/style.css">
+</head>
+<body>
+    <header>
+        <a href="/" class="brand">Service Tomorrow</a>
+        <nav>
+            <a href="/incident">Incident</a>
+            <a href="/cmdb">CMDB</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="page-header">
+            <h1>Incident Management</h1>
+            <button class="btn" id="btn-create-ticket">New Ticket</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Incident #</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody id="ticket-table-body">
+                    <!-- Tickets will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Create Ticket Modal -->
+    <div class="modal-overlay" id="create-ticket-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Incident</h2>
+                <button class="modal-close" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-ticket-form">
+                    <div class="form-group">
+                        <label for="issue_type">Issue Type</label>
+                        <select id="issue_type" name="issue_type" required>
+                            <option value="" disabled selected>Select an issue...</option>
+                            <option value="other">Other / General Request</option>
+                            <option value="server_down">Server Down</option>
+                            <option value="utilization_high">High CPU/Memory/Disk</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="title">Title (Short Description)</label>
+                        <input type="text" id="title" name="title" required readonly placeholder="Select an issue type first">
+                    </div>
+                    <div class="form-group">
+                        <label for="server_name">Affected Server (IP or Hostname)</label>
+                        <input type="text" id="server_name" name="server_name" list="server-list" placeholder="Start typing... or type 'Others'">
+                        <datalist id="server-list"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="4" required></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
+                        <button type="submit" class="btn">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ticket Details Modal -->
+    <div class="modal-overlay" id="ticket-detail-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ticket Details</h2>
+                <button class="modal-close" id="close-detail-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="ticket-detail-content">
+                <!-- Details injected via JS -->
+            </div>
+            <div class="modal-body" style="padding-top: 0;">
+                <div class="form-actions">
+                    <button type="button" class="btn" id="btn-close-detail-bottom">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getTickets, createTicket, getServers } from '/public/api.js';
+        import { initModal, populateDatalist } from '/public/app.js';
+
+        let detailModal;
+
+        async function loadTicketsUI() {
+            try {
+                const tickets = await getTickets();
+                const tbody = document.getElementById('ticket-table-body');
+                tbody.innerHTML = '';
+
+                if (tickets.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No incidents found.</td></tr>';
+                    return;
+                }
+
+                tickets.forEach(ticket => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${ticket.inc_number || ticket.ticket_id}</td>
+                        <td>${ticket.short_description}</td>
+                        <td>${ticket.status}</td>
+                        <td>${new Date(ticket.created_at).toLocaleString()}</td>
+                    `;
+                    tr.addEventListener('click', () => showTicketDetails(ticket));
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error(error);
+                const tbody = document.getElementById('ticket-table-body');
+                tbody.innerHTML = '<tr><td colspan="4">Error loading data.</td></tr>';
+            }
+        }
+
+        function showTicketDetails(ticket) {
+            const content = document.getElementById('ticket-detail-content');
+            content.innerHTML = `
+                <div class="detail-row">
+                    <div class="detail-label">Incident Number:</div>
+                    <div class="detail-value">${ticket.inc_number}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Short Description:</div>
+                    <div class="detail-value">${ticket.short_description}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Description:</div>
+                    <div class="detail-value" style="white-space: pre-wrap;">${ticket.long_description || ''}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Status:</div>
+                    <div class="detail-value">${ticket.status}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Priority:</div>
+                    <div class="detail-value">${ticket.priority}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Created By (ID):</div>
+                    <div class="detail-value">${ticket.created_by}</div>
+                </div>
+            `;
+            detailModal.openModal();
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadTicketsUI();
+
+            // Initialize Modals
+            const createModal = initModal('create-ticket-modal', 'btn-create-ticket', ['close-modal', 'btn-cancel']);
+            detailModal = initModal('ticket-detail-modal', null, ['close-detail-modal', 'btn-close-detail-bottom']);
+
+            // Populate CMDB Datalist
+            try {
+                const servers = await getServers();
+                // User can search by IP or host name, so we add both to the datalist
+                populateDatalist('server-list', servers, 'host_name');
+                const datalist = document.getElementById('server-list');
+                servers.forEach(srv => {
+                    if(srv.ip_address) {
+                        const opt = document.createElement('option');
+                        opt.value = srv.ip_address;
+                        datalist.appendChild(opt);
+                    }
+                });
+            } catch (e) {
+                console.error('Could not load CMDB data for autocomplete');
+            }
+
+            // Form Submit Logic
+            const form = document.getElementById('create-ticket-form');
+            const issueTypeSelect = document.getElementById('issue_type');
+            const titleInput = document.getElementById('title');
+
+            issueTypeSelect.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val === 'server_down') titleInput.value = 'Server Outage Detected';
+                else if (val === 'utilization_high') titleInput.value = 'High Resource Utilization Alert';
+                else titleInput.value = 'General Support Request';
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const payload = {
+                    short_description: titleInput.value,
+                    long_description: document.getElementById('description').value,
+                    created_by: 1, // Defaulting to Admin user ID
+                    issue_type: issueTypeSelect.value,
+                    server_name: document.getElementById('server_name').value
+                };
+
+                try {
+                    await createTicket(payload);
+                    createModal.closeModal();
+                    form.reset();
+                    loadTicketsUI(); // Refresh the list
+                } catch (error) {
+                    console.error('Error creating ticket:', error);
+                    alert('Error creating ticket');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

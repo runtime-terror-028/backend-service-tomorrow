@@ -5,7 +5,7 @@ Deno.test("returns html on /", async () => {
   const res = await handler(new Request("http://localhost/"));
   assertEquals(res.headers.get("content-type"), "text/html");
   const body = await res.text();
-  assertEquals(body.includes("Welcome to Deno"), true);
+  assertEquals(body.includes("Service Tomorrow"), true);
 });
 
 Deno.test("returns json on /api", async () => {

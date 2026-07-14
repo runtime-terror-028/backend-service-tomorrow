@@ -1,0 +1,7 @@
+1. Clicking on a ticket in the incedent should open a modal showing ticket details
+2. Add some demo users in the (setup_db.ts) should have admin, user, manager
+3. When creating a ticket user will get option to select issue(server_down = high, cpu/memory/disk utilization high = medium), description and the backend should be able to add the priority accordingly
+4. separate the js code in public
+5. For frontend api calls make separate funtions for each api calls
+6. When creating the ticket the user should be able to select affected server. When user types ip or hostname, it should suggest servers to setect from the cmdb. If the server is not available in the cmdb then the user can add others as server.
+7. If user has selected a server for creating ticket then the backend should auto create a descripting mentionaing all the server details from cmdb.
