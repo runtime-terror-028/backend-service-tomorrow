@@ -19,7 +19,7 @@ export async function handleAlertRoutes(req: Request, url: URL): Promise<Respons
       // Parse Grafana payload or generic payload
       let ipAddress = payload.ip_address || payload.ip || null;
       let title = payload.title || payload.message || "Grafana Alert";
-      let description = JSON.stringify(payload, null, 2);
+      let description = "";
 
       // Handle typical Grafana webhook format
       if (payload.alerts && Array.isArray(payload.alerts) && payload.alerts.length > 0) {
@@ -38,6 +38,15 @@ export async function handleAlertRoutes(req: Request, url: URL): Promise<Respons
           if (firstAlert.labels.ip_address) {
             ipAddress = firstAlert.labels.ip_address;
           }
+        }
+      }
+
+      // Fallback to commonLabels if ipAddress wasn't found in alerts[0]
+      if (!ipAddress && payload.commonLabels) {
+        if (payload.commonLabels.instance) {
+          ipAddress = payload.commonLabels.instance.split(':')[0];
+        } else if (payload.commonLabels.ip_address) {
+          ipAddress = payload.commonLabels.ip_address;
         }
       }
 
